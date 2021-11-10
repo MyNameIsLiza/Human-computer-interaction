@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Лр5 ЛМВ</title>
+</head>
+<body>
+<div class="strategy">
+    <h2>Стратегія</h2>
+    <form id="strategyForm">
+        <label for="distance">Відстань</label>
+        <input id="distance" type="number" value="1" min="1"/>
+        <label for="way">Спосіб</label>
+        <select name="way" id="way">
+            <option value="taxi">Таксі</option>
+            <option value="publicTransport">Публічний транспорт</option>
+            <option value="walking">Пішки</option>
+        </select>
+        <button type="submit">Готово</button>
+    </form>
+</div>
+<div class="prototype">
+    <h2>Прототип</h2>
+    <form id="prototypeForm">
+        <label for="lastname">Прізвище</label>
+        <input id="lastname" type="text" required>
+        <label for="firstname">Ім'я</label>
+        <input id="firstname" type="text" required>
+        <label for="group">Група</label>
+        <input id="group" type="text" required>
+        <button type="submit">Створити</button>
+    </form>
+</div>
+<div class="decorator">
+    <h2>Декоратор</h2>
+    <img src="images/person.png" alt="" id="person">
+    <button id="addCoat">Одягти куртку</button>
+    <button id="addHat">Одягти шапку</button>
+</div>
+<script src="strategy.js"></script>
+<script src="prototype.js"></script>
+<script src="decorator.js"></script>
+</body>
+</html>
