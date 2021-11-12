@@ -1,57 +1,35 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
+
 const app = express();
 app.use(express.json());
 
-class Client {
-    static #newId = 0;
+const dotenv = require('dotenv').config();
 
-    //назва, вид власності, адреса, телефон, контактна особа
-    constructor(name, kindOfProperty, address, telephoneNumber, contactPerson) {
-        this.id = Client.#newId++;
-        this.name = name;
-        this.kindOfProperty = kindOfProperty;
-        this.address = address;
-        this.contactPerson = contactPerson;
-    }
-
-    static getClientById(id) {
-        Client.clients.find((item) => item.id === id)
-    }
-
-    static clients = [];
-}
-
-Client.clients = [
-    new Client("Hospital of Sent Ivan", "Immovable Property", "Sent Ivan Street 78", "Ivan"),
-    new Client("Morgue of dead nuns", "Immovable Property", "Sent Ivan Street 78", "Dead nun"),
-    new Client("Funny Ivan", "Incorporeal Property", "Sent Ivan Street 75", "Ivan")
-]
-
-class Credit {
-    static #newId = 0;
-
-    //сума кредиту, клієнт і дата видачі
-    constructor(amount, client, dateOfIssue) {
-        this.id = Credit.#newId++;
-        this.amount = amount;
-        this.client = client;
-        this.dateOfIssue = dateOfIssue;
-    }
-
-    static addCredit(credit) {
-        Credit.credits.push(credit);
-    }
-
-    static credits = [];
-}
+require('./initDB')();
 
 app.get('/', (req, res) => {
-    res.send('Hello, API')
+    res.send('Ви – керівник інформаційно-аналітичного центру коммерційного банку. Одним з існуючих\n' +
+        'видів діяльності Вашого банку є видача кредитів юридичним особам. Ваше завдання –\n' +
+        'стеження за динамікою роботи кредитного відділу.\n' +
+        'В залежності від умов одержання кредиту, відсоткової ставки і терміну повернення, всі\n' +
+        'кредитні операції розподіляються на декілька основних видів. Кожний з цих видів має свою\n' +
+        'назву.\n' +
+        'Кредит може одержати юридична особа (клієнт), яка при реєстрації надає наступні\n' +
+        'відомості: назва, вид власності, адреса, телефон, контактна особа. Кожний факт видачі\n' +
+        'кредиту реєструється банком, при цьому фіксується сума кредиту, клієнт і дата видачі.\n' +
+        'Необхідно враховувати в системі ще й дату фактичного повернення грошей. Необхідно\n' +
+        'також враховувати, що кредит може повертатися частинами, і за затримку повернення\n' +
+        'кредиту нараховуються штрафи.')
 })
 
-app.get('/api/clients', (req, res) => {
+const clientRouter = require("./routes/clientRouter.js");
+const creditRouter = require("./routes/creditRouter.js");
+
+app.use("/api/clients", clientRouter);
+app.use("/api/credits", creditRouter);
+
+
+/*app.get('/api/clients', (req, res) => {
     try {
         res.send({"message": "Success", "clients": Client.clients})
     } catch (error) {
@@ -93,8 +71,11 @@ app.post('/api/clients', (req, res) => {
             "message": "Error"
         })
     }
-})
+})*/
 
-app.listen(8080, () => {
-    console.log('API app start')
-})
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+    console.log('Server started on port ' + PORT + '...');
+});
+
