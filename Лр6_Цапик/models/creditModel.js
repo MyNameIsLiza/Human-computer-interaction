@@ -18,6 +18,10 @@ const CreditSchema = new Schema({
     dateOfRefund: {
         type: Date,
         required: false
+    },
+    fine:{
+        type: Number,
+        required: false
     }
 });
 

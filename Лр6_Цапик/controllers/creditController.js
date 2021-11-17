@@ -5,7 +5,7 @@ const {sendError, sendResult} = require('./baseController');
 
 async function getOpenCreditByClientId(clientId) {
     const found = await Credit.find({"clientId": clientId});
-    return found.find((item)=>!item.dateOfRefund);
+    return found.find((item) => !item.dateOfRefund);
 }
 
 module.exports = {
@@ -61,16 +61,22 @@ module.exports = {
         try {
             const credit = await Credit.findOne({_id: new ObjectId(req.body.id)});
             let change = 0;
+            let fine = 0;
             console.log('OpenCredit', await getOpenCreditByClientId(credit.clientId));
             if (await getOpenCreditByClientId(credit.clientId)) {
                 if (credit.amount > req.body.amount) {
                     console.log("if");
                     credit.amount -= req.body.amount;
-                } else{
+                } else {
                     console.log("else");
                     change = req.body.amount - credit.amount;
                     credit.amount = 0;
                     credit.dateOfRefund = new Date();
+                    const diff = parseInt((credit.dateOfRefund - credit.dateOfIssue) / (24 * 3600 * 1000));
+                    console.log(diff);
+                    if (diff > 100) {
+                        fine = (diff - 100) * 100;
+                    }
                 }
                 await credit.save();
                 sendResult(res, 'Success', {
@@ -79,6 +85,7 @@ module.exports = {
                     "clientId": credit.clientId,
                     "dateOfIssue": credit.dateOfIssue,
                     "dateOfRefund": credit.dateOfRefund || 'The credit is not closed',
+                    "fine": fine,
                     "change": change
                 });
             } else {
