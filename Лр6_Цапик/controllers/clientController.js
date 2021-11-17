@@ -11,7 +11,14 @@ module.exports = {
             const found = await Client.findOne({"name": client.name});
             if (!found) {
                 await client.save();
-                sendResult(res, 'Success');
+                sendResult(res, 'Success',
+                    {
+                        "id": client._id,
+                        "name": client.name,
+                        "kindOfProperty": client.kindOfProperty,
+                        "address": client.address,
+                        "contactPerson": client.contactPerson
+                    });
             } else {
                 sendError(res, 400, 'Client with this name already exists')
             }

@@ -3,18 +3,28 @@ const Client = require('../models/clientModel');
 const {ObjectId} = require("mongodb");
 const {sendError, sendResult} = require('./baseController');
 
+async function getOpenCreditByClientId(clientId) {
+    const found = await Credit.find({"clientId": clientId});
+    return found.find((item)=>!item.dateOfRefund);
+}
+
 module.exports = {
     addCredit: async (req, res) => {
         console.log("addCredit");
         try {
             const credit = new Credit(req.body);
-            const found = await Credit.find({"clientId": credit.clientId});
-            console.log('found', found);
-            if (!found.dateOfRefund) {
+            console.log('OpenCredit', getOpenCreditByClientId(credit.clientId));
+            if (!await getOpenCreditByClientId(credit.clientId)) {
                 const client = await Client.findOne({_id: new ObjectId(credit.clientId)});
                 if (client) {
                     await credit.save();
-                    sendResult(res, 'Success');
+                    sendResult(res, 'Success', {
+                        "id": credit._id,
+                        "amount": credit.amount,
+                        "clientId": credit.clientId,
+                        "dateOfIssue": credit.dateOfIssue,
+                        "dateOfRefund": credit.dateOfRefund || 'The credit is not closed'
+                    });
                 } else {
                     sendError(res, 400, 'This client is missing');
                 }
@@ -51,7 +61,8 @@ module.exports = {
         try {
             const credit = await Credit.findOne({_id: new ObjectId(req.body.id)});
             let change = 0;
-            if (!credit.dateOfRefund) {
+            console.log('OpenCredit', await getOpenCreditByClientId(credit.clientId));
+            if (await getOpenCreditByClientId(credit.clientId)) {
                 if (credit.amount > req.body.amount) {
                     console.log("if");
                     credit.amount -= req.body.amount;
@@ -62,9 +73,6 @@ module.exports = {
                     credit.dateOfRefund = new Date();
                 }
                 await credit.save();
-                /*if (credit.amount === 0) {
-                    Credit.deleteOne(credit);
-                }*/
                 sendResult(res, 'Success', {
                     "id": credit._id,
                     "amount": credit.amount,
