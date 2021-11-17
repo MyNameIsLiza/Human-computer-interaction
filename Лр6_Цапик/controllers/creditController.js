@@ -1,4 +1,4 @@
-const Credit = require('../models/creditModel');
+const {Credit, CreditType} = require('../models/creditModel');
 const Client = require('../models/clientModel');
 const {ObjectId} = require("mongodb");
 const {sendError, sendResult} = require('./baseController');
@@ -8,18 +8,22 @@ async function getOpenCreditByClientId(clientId) {
     return found.find((item) => !item.dateOfRefund);
 }
 
+function round(number) {
+    return parseFloat(number.toFixed(2))
+}
+
 module.exports = {
     addCredit: async (req, res) => {
         console.log("addCredit");
         try {
-            const credit = new Credit(req.body);
-            console.log('OpenCredit', getOpenCreditByClientId(credit.clientId));
+            const credit = new Credit({...req.body, creditType: CreditType[req.body.creditType]});
             if (!await getOpenCreditByClientId(credit.clientId)) {
                 const client = await Client.findOne({_id: new ObjectId(credit.clientId)});
                 if (client) {
                     await credit.save();
                     sendResult(res, 'Success', {
                         "id": credit._id,
+                        "creditType": credit.creditType.name,
                         "amount": credit.amount,
                         "clientId": credit.clientId,
                         "dateOfIssue": credit.dateOfIssue,
@@ -29,7 +33,7 @@ module.exports = {
                     sendError(res, 400, 'This client is missing');
                 }
             } else {
-                sendError(res, 400, 'This client already has a open credit');
+                sendError(res, 400, 'This client already has an open credit');
             }
         } catch (error) {
             sendError(res, 400, 'Bad request')
@@ -43,6 +47,7 @@ module.exports = {
                 sendResult(res, 'Success', credits.map((item) => {
                     return {
                         "id": item._id,
+                        "creditType": item.creditType.name,
                         "amount": item.amount,
                         "clientId": item.clientId,
                         "dateOfIssue": item.dateOfIssue,
@@ -62,31 +67,30 @@ module.exports = {
             const credit = await Credit.findOne({_id: new ObjectId(req.body.id)});
             let change = 0;
             let fine = 0;
-            console.log('OpenCredit', await getOpenCreditByClientId(credit.clientId));
             if (await getOpenCreditByClientId(credit.clientId)) {
-                if (credit.amount > req.body.amount) {
-                    console.log("if");
-                    credit.amount -= req.body.amount;
+                const realAmount = round(req.body.amount * (1 - credit.creditType.interestRate / 100));
+                if (credit.amount > realAmount) {
+                    credit.amount -= parseFloat(realAmount.toFixed(2));
                 } else {
-                    console.log("else");
-                    change = req.body.amount - credit.amount;
-                    credit.amount = 0;
+                    change = realAmount - credit.amount;
                     credit.dateOfRefund = new Date();
-                    const diff = parseInt((credit.dateOfRefund - credit.dateOfIssue) / (24 * 3600 * 1000));
-                    console.log(diff);
-                    if (diff > 100) {
-                        fine = (diff - 100) * 100;
+                    const diff = credit.dateOfRefund.getFullYear() - credit.dateOfIssue.getFullYear();
+                    if (diff > credit.creditType.term) {
+                        fine = credit.amount * (1 + credit.creditType.interestRate / 100);
                     }
+                    credit.amount = 0;
                 }
                 await credit.save();
                 sendResult(res, 'Success', {
                     "id": credit._id,
+                    "creditType": credit.creditType.name,
+                    "amountPaid": realAmount,
                     "amount": credit.amount,
                     "clientId": credit.clientId,
                     "dateOfIssue": credit.dateOfIssue,
                     "dateOfRefund": credit.dateOfRefund || 'The credit is not closed',
-                    "fine": fine,
-                    "change": change
+                    "fine": round(fine),
+                    "change": round(change)
                 });
             } else {
                 sendError(res, 400, 'Credit is missing or closed')
